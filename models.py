@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 class Address(BaseModel):
     city: str
@@ -11,13 +11,13 @@ class Student(BaseModel):
     address: Address
 
 class UpdateAddress(BaseModel):
-    city: str | None = None
-    country: str | None = None
+    city: Optional[str] = None
+    country: Optional[str] = None
 
 class UpdateStudent(BaseModel):
-    name: str | None = None
-    age: str | None = None
-    address: UpdateAddress | None = None
+    name: Optional[str] = None
+    age: Optional[str] = None
+    address: Optional[UpdateAddress] = None
 
 class StudentGetResponseModel(BaseModel):
     name: str
@@ -27,4 +27,4 @@ class StudentCollection(BaseModel):
     data: List[StudentGetResponseModel]
 
 class PostResponseModel(BaseModel):
-    id: str | None = None
+    id: Optional[str] = None
