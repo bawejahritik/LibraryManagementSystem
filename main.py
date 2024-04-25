@@ -1,8 +1,10 @@
-from fastapi import FastAPI, Query, Path
+from fastapi import FastAPI, Query, Path, HTTPException, Response
 from bson.objectid import ObjectId
 from models import Student, UpdateStudent, PostResponseModel, StudentCollection
 from database import student_collection
 from fastapi.openapi.utils import get_openapi
+from datetime import datetime, timedelta
+import redis
 
 app = FastAPI()
 
@@ -32,6 +34,35 @@ def update_nested_fields(existing_obj: dict, new_obj: dict):
             existing_obj[key] = value
 
 app.openapi = custom_openapi
+
+
+app = FastAPI()
+
+redis_client = redis.Redis(host='localhost', port=6379, db=0)
+
+def time_until_end_of_day():
+    now = datetime.now()
+    end_of_day = datetime(now.year, now.month, now.day, 23, 59, 59)
+    return (end_of_day - now).total_seconds()
+
+async def rate_limit_middleware(request, call_next):
+    user_id = request.headers.get('user_id')
+    if user_id:
+        key = f"{user_id}"
+        count = redis_client.get(key)
+        if count is None:
+            redis_client.setex(key, int(time_until_end_of_day()), 1)
+        else:
+            count = int(count)
+            if count >= 3:
+                return Response(content="Rate limit exceeded", status_code=429)
+            else:
+                redis_client.incr(key)
+    response = await call_next(request)
+    return response
+
+app.middleware('http')(rate_limit_middleware)
+
 
 @app.post(
         "/students", 
